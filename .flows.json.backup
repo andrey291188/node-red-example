@@ -1,0 +1,146 @@
+[
+    {
+        "id": "534982ea8c9d0970",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "febabaf310bc50a2",
+        "type": "function",
+        "z": "534982ea8c9d0970",
+        "name": "Add object to array history",
+        "func": "msg.taskHistory = [\n{\nmerchant: \"system5782\",\ntaskNUmber : 735957,\ndate_close: \"2024-04-16 22:42:12\",\ncam1: 0,\ncam2: 1,\ncam3: 0,\ncam4: 0\n} ,\n{\nmerchant: \"system5782\",\ntaskNUmber : 734340,\ndate_close: \"2024-04-11 12:54:12\",\ncam1: 0,\ncam2: 0,\ncam3: 0,\ncam4: 1\n}, {\nmerchant: \"system5782\",\ntaskNUmber : 636330,\ndate_close: \"2024-04-12 20:12:12\",\ncam1: 1,\ncam2: 0,\ncam3: 0,\ncam4: 1\n},\n{\nmerchant: \"system5782\",\ntaskNUmber : 356680,\ndate_close: \"2024-01-22 15:56:32\",\ncam1: 1,\ncam2: 1,\ncam3: 0,\ncam4: 0\n},{\nmerchant: \"system1254\",\ntaskNUmber : 432963,\ndate_close: \"2024-02-01 16:34:12\",\ncam1: 0,\ncam2: 1,\ncam3: 0,\ncam4: 1\n},\n{\nmerchant: \"system5782\",\ntaskNUmber : 356680,\ndate_close: \"2024-02-02 19:56:32\",\ncam1: 1,\ncam2: 1,\ncam3: 0,\ncam4: 1\n}]\n\nmsg.taskHistory.unshift(msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 310,
+        "y": 240,
+        "wires": [
+            [
+                "23e8085c1daeea8a"
+            ]
+        ]
+    },
+    {
+        "id": "3f984cbbe887589e",
+        "type": "http in",
+        "z": "534982ea8c9d0970",
+        "name": "",
+        "url": "/GetRepeatedTask",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 130,
+        "y": 180,
+        "wires": [
+            [
+                "dd8288b4af490c4e"
+            ]
+        ]
+    },
+    {
+        "id": "59abdc8a8d87deb3",
+        "type": "http response",
+        "z": "534982ea8c9d0970",
+        "name": "Response not valid object",
+        "statusCode": "400",
+        "headers": {
+            "response": "Data is not valid"
+        },
+        "x": 810,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "dd8288b4af490c4e",
+        "type": "function",
+        "z": "534982ea8c9d0970",
+        "name": "Cheking request object",
+        "func": "const template = {\n    merchant: '',\n    taskNumber: 0,\n    date_close: '',\n    cam1: 0,\n    cam2: 0,\n    cam3: 0,\n    cam4: 0\n};\nconst obj = msg.payload;\n    const keysObj = Object.keys(obj);\n    const keysTemplate = Object.keys(template);\n\n    if (keysObj.length !== keysTemplate.length) {\n        msg.payload = \"Data is not valid\"\n        return msg;\n    }\n\n    for (let key of keysTemplate) {\n        if (!keysObj.includes(key)) {\n            msg.payload = \"Data is not valid\"\n            return msg;\n        }\n        if (typeof obj[key] !== typeof template[key]) {\n            msg.payload = \"Data is not valid\"\n            return msg;\n        }\n    }\n    return msg;\n\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 180,
+        "wires": [
+            [
+                "5c2aec2032ce5806"
+            ]
+        ]
+    },
+    {
+        "id": "5c2aec2032ce5806",
+        "type": "switch",
+        "z": "534982ea8c9d0970",
+        "name": "Valid object or not",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "Data is not valid",
+                "vt": "str"
+            },
+            {
+                "t": "istype",
+                "v": "object",
+                "vt": "object"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 570,
+        "y": 180,
+        "wires": [
+            [
+                "59abdc8a8d87deb3"
+            ],
+            [
+                "febabaf310bc50a2"
+            ]
+        ]
+    },
+    {
+        "id": "d85f5d33227acdc2",
+        "type": "http response",
+        "z": "534982ea8c9d0970",
+        "name": "Response from problem cam",
+        "statusCode": "200",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 880,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "23e8085c1daeea8a",
+        "type": "function",
+        "z": "534982ea8c9d0970",
+        "name": "Cheking array for response",
+        "func": "const currentDate = new Date();\n\nconst filteredArray = msg.taskHistory.map(obj => {\n\n    const closeDate = new Date(obj.date_close);\n    const isWithinLast10Days = (Number(currentDate) - Number(closeDate)) / (1000 * 60 * 60 * 24) <= 10;\n\n    if (!isWithinLast10Days) {\n        return null; \n    }\n\n    const newObj = {\n        taskNUmber: obj.taskNUmber,\n        date_close: obj.date_close,\n    };\n\n    Object.entries(obj)\n        .filter(([key, value]) => value === 1)\n        .forEach(([key, value]) => {\n            newObj[key] = value;\n        });\n\n       const keyLength = Object.keys(newObj)\n\n       if (keyLength.length === 2){\n        return null\n       }\n\n    return newObj; \n\n}).filter(obj => obj !== null)\n\nmsg.payload = filteredArray\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 240,
+        "wires": [
+            [
+                "d85f5d33227acdc2"
+            ]
+        ]
+    }
+]
